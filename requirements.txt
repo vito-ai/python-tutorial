@@ -1,0 +1,7 @@
+PyAudio==0.2.14
+grpcio-tools==1.62.0
+grpcio==1.62.0
+numpy
+protobuf==4.25.3
+requests
+soundfile==0.12.1
