@@ -1,0 +1,25 @@
+name: "python_vad"
+backend: "python"
+max_batch_size: 0
+input [
+    {
+        name: "INPUT_0",
+        data_type: TYPE_FP32,
+        dims: [-1]
+    }
+]
+output [
+    {
+        name: "OUTPUT_0",
+        data_type: TYPE_FP32,
+        dims: [-1]
+    }
+]
+
+instance_group [
+    {
+        count: 4,
+        kind: KIND_CPU,
+#        gpus: [0]
+    }
+]

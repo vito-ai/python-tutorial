@@ -7,10 +7,9 @@ import time
 
 import grpc
 import pyaudio
-from requests import Session
-
 import vito_stt_client_pb2 as pb
 import vito_stt_client_pb2_grpc as pb_grpc
+from requests import Session
 
 API_BASE = "https://openapi.vito.ai"
 GRPC_SERVER_URL = "grpc-openapi.vito.ai:443"

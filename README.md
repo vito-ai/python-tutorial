@@ -1,17 +1,26 @@
-# RTZR Streaming STT API(gRPC) with Mic. Interface
+# Python Audio Processing Tutorials
 
-## Requirements
-This repository need `PyAudio` library. First, you need to read installation instruction `PyAudio` [this link](https://pypi.org/project/PyAudio/). 
+Welcome to the Python Audio Processing Tutorials repository. This repository contains two main projects focusing on real-time audio processing using different technologies and frameworks.
 
-And Then,
+## Projects
+
+### 1. RTZR Streaming STT API(gRPC) with Mic. Interface
+
+This project demonstrates how to set up a real-time streaming Speech-to-Text (STT) API using gRPC with microphone interface capabilities. It requires the installation of the `PyAudio` library and additional setup for gRPC communication.
+
+- **Requirements**: PyAudio (see [installation instructions](https://pypi.org/project/PyAudio/)).
+- **Setup**: Download necessary `.proto` files and generate gRPC client code. For details, check the project's [README](./python-stt-sample/).
+
+### 2. Triton, Tritony VAD Client Sample
+
+This project showcases the use of the Triton Inference Server and Tritony Voice Activity Detection (VAD) to process and analyze audio streams effectively. It involves setting up a Docker container and running a Triton server.
+
+- **Requirements**: pydub, tritonclient, tritony
+- **Setup**: Build and run a Docker image for the Triton Inference Server. Testing is facilitated through predefined scripts and pytest. For more information, visit the project's [README](./tritony-sample/).
+
+## General Installation
+
+Most project dependencies can be installed via pip:
 
 ```bash
 pip install -r requirements.txt
-```
- Download `.proto` file from this [Link](https://github.com/vito-ai/openapi-grpc/blob/main/protos/vito-stt-client.proto). And save `.proto` file in the project directory.
- 
- And run this command to generate grpc file.
- ```bash
- python -m grpc_tools.protoc -I. --python_out=./src --grpc_python_out=./src ./vito-stt-client.proto
- ```
- 

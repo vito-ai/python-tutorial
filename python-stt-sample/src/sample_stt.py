@@ -28,10 +28,9 @@ from io import DEFAULT_BUFFER_SIZE
 
 import grpc
 import soundfile as sf
-from requests import Session
-
 import vito_stt_client_pb2 as pb
 import vito_stt_client_pb2_grpc as pb_grpc
+from requests import Session
 
 API_BASE = "https://openapi.vito.ai"
 GRPC_SERVER_URL = "grpc-openapi.vito.ai:443"

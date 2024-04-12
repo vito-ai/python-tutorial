@@ -1,0 +1,7 @@
+tritonclient>=2.34.0
+tritony>=0.0.16
+numpy
+pydub==0.25.1
+
+# test
+pytest
