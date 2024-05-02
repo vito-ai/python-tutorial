@@ -158,10 +158,7 @@ class RTZROpenAPIClient:
 
     def transcribe_streaming_grpc(self, config):
         base = GRPC_SERVER_URL
-        creds = grpc.ssl_channel_credentials()
-        with open(os.environ["REQUESTS_CA_BUNDLE"], 'rb') as f:
-            creds = grpc.ssl_channel_credentials(f.read())
-        with grpc.secure_channel(base, credentials=creds) as channel:
+        with grpc.secure_channel(base, credentials=grpc.ssl_channel_credentials()) as channel:
             stub = pb_grpc.OnlineDecoderStub(channel)
             cred = grpc.access_token_call_credentials(self.token)
 
