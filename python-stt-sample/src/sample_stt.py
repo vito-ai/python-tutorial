@@ -42,7 +42,6 @@ ENCODING = pb.DecoderConfig.AudioEncoding.LINEAR16
 class FileStreamer:
     def __init__(self, filepath):
         self.file = open(filepath,"rb")
-        self._logger = logging.getLogger(__name__)
 
     def read(self, size):
         if size > 1024 * 1024:
