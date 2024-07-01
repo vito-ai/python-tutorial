@@ -39,19 +39,22 @@ GRPC_SERVER_URL = "grpc-openapi.vito.ai:443"
 SAMPLE_RATE = 8000
 ENCODING = pb.DecoderConfig.AudioEncoding.LINEAR16
 
-class FileStreamer:
-    def __init__(self, filepath):
-        self.file = open(filepath,"rb")
-
+class FileStreamer:    
+    def __init__(self,filepath):
+        self.filepath = filepath
+        self.file = None
+    def __enter__(self):
+        self.file = open(self.filepath,"rb")
+        return self
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.file.close()
+        
     def read(self, size):
         if size > 1024 * 1024:
             size = 1024*1024
-        content = self.file.read(size)
         time.sleep(size / 16 / 1000)
+        content = self.file.read(size)
         return content
-
-    def close(self):
-        self.file.close()
 
 class RTZROpenAPIClient:
     def __init__(self, client_id, client_secret):
@@ -81,22 +84,14 @@ class RTZROpenAPIClient:
 
             def req_iterator():
                 yield pb.DecoderRequest(streaming_config=config)
-                try:
-                    fileStreamer = FileStreamer(filepath)
+                with FileStreamer(filepath) as f:
                     while True:
-                        buff = fileStreamer.read(size=DEFAULT_BUFFER_SIZE)
+                        buff = f.read(size=DEFAULT_BUFFER_SIZE)
                         if buff is None or len(buff) == 0:
                             break
                         yield pb.DecoderRequest(audio_content=buff)
-                except Exception as e:
-                    self._logger.error(e)
-                    return
-                finally:
-                    fileStreamer.close()
-
             req_iter = req_iterator()
             resp_iter = stub.Decode(req_iter, credentials=cred)
-
             for resp in resp_iter:
                 resp: pb.DecoderResponse
                 for res in resp.results:
