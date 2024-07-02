@@ -38,7 +38,10 @@ GRPC_SERVER_URL = "grpc-openapi.vito.ai:443"
 
 SAMPLE_RATE = 8000
 ENCODING = pb.DecoderConfig.AudioEncoding.LINEAR16
+BYTES_PER_SAMPLE= 2
 
+# 본 예제에서는 스트리밍 입력을 음성파일을 읽어서 시뮬레이션 합니다.
+# 실제사용시에는 마이크 입력 등의 실시간 음성 스트림이 들어와야합니다.
 class FileStreamer:    
     def __init__(self,filepath):
         self.filepath = filepath
@@ -48,11 +51,12 @@ class FileStreamer:
         return self
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.file.close()
+        os.remove(self.filepath)
         
     def read(self, size):
         if size > 1024 * 1024:
             size = 1024*1024
-        time.sleep(size / 16 / 1000)
+        time.sleep(size / (SAMPLE_RATE*BYTES_PER_SAMPLE))
         content = self.file.read(size)
         return content
 
