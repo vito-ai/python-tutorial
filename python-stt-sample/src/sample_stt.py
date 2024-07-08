@@ -9,10 +9,11 @@ To generate gRPC code
 $ pip install grpcio-tools
 $ python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./vito-stt-client.proto
 
-NOTE: This module requires the dependencies `grpcio` and `requests`.
+NOTE: This module requires the dependencies `grpcio`, `requests` `soundfile`.
 To install using pip:
     pip install grpcio
     pip install requests
+    pip install soundfile
 
 Example usage:
     python vitoopenapi-stt-streaming-sample.py sample/filepath
@@ -35,9 +36,29 @@ from requests import Session
 API_BASE = "https://openapi.vito.ai"
 GRPC_SERVER_URL = "grpc-openapi.vito.ai:443"
 
-SAMPLE_RATE = 16000
+SAMPLE_RATE = 8000
 ENCODING = pb.DecoderConfig.AudioEncoding.LINEAR16
+BYTES_PER_SAMPLE= 2
 
+# 본 예제에서는 스트리밍 입력을 음성파일을 읽어서 시뮬레이션 합니다.
+# 실제사용시에는 마이크 입력 등의 실시간 음성 스트림이 들어와야합니다.
+class FileStreamer:    
+    def __init__(self,filepath):
+        self.filepath = filepath
+        self.file = None
+    def __enter__(self):
+        self.file = open(self.filepath,"rb")
+        return self
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.file.close()
+        os.remove(self.filepath)
+        
+    def read(self, size):
+        if size > 1024 * 1024:
+            size = 1024*1024
+        time.sleep(size / (SAMPLE_RATE*BYTES_PER_SAMPLE))
+        content = self.file.read(size)
+        return content
 
 class RTZROpenAPIClient:
     def __init__(self, client_id, client_secret):
@@ -67,16 +88,14 @@ class RTZROpenAPIClient:
 
             def req_iterator():
                 yield pb.DecoderRequest(streaming_config=config)
-                with open(filepath, "rb") as f:
+                with FileStreamer(filepath) as f:
                     while True:
-                        buff = f.read(DEFAULT_BUFFER_SIZE)
+                        buff = f.read(size=DEFAULT_BUFFER_SIZE)
                         if buff is None or len(buff) == 0:
                             break
                         yield pb.DecoderRequest(audio_content=buff)
-
             req_iter = req_iterator()
             resp_iter = stub.Decode(req_iter, credentials=cred)
-
             for resp in resp_iter:
                 resp: pb.DecoderResponse
                 for res in resp.results:
