@@ -1,0 +1,5 @@
+numpy<2
+requests
+streamlit
+torch>=2.2.2
+transformers>=4.44.2
