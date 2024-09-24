@@ -62,9 +62,7 @@ def page_setup(logo_url: str, homepage_url: str, tutorial_url: str) -> st.file_u
     st.sidebar.write("## 아래를 채워주세요!(*는 필수)")
     with st.sidebar.form("my-form", clear_on_submit=False):
         st.checkbox("dev?", key="dev")
-        st.text_input(
-            "*Client Id를 작성해주세요👇", placeholder="client id", key="client_id"
-        )
+        st.text_input("*Client Id를 작성해주세요👇", placeholder="client id", key="client_id")
         st.text_input(
             "*Client Secret을 작성해주세요👇",
             placeholder="client secret",
@@ -89,19 +87,11 @@ def page_setup(logo_url: str, homepage_url: str, tutorial_url: str) -> st.file_u
 
 def display_result(audio_file_path: str, upload_file: st.file_uploader) -> None:
     """streamlit 결과 화면"""
-    if (
-        st.session_state.client_id
-        and st.session_state.client_secret
-        and st.session_state.file
-    ):
+    if st.session_state.client_id and st.session_state.client_secret and st.session_state.file:
         # sound file download func
         file_path: str = str(file_upload_save(audio_file_path, upload_file))
         file: dict = {"file": (file_path, open(file_path, "rb"))}
-        speaker_num: int = (
-            0
-            if st.session_state.speaker_num == "4+"
-            else int(st.session_state.speaker_num)
-        )
+        speaker_num: int = 0 if st.session_state.speaker_num == "4+" else int(st.session_state.speaker_num)
         # call RtzrAPI class
         try:
             api = RtzrAPI(

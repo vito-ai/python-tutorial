@@ -23,9 +23,7 @@ class RtzrAPI:
         self.client_sceret: str = client_sceret
         self.file_path: dict = file_path
         self.speaker_num: int = speaker_num
-        self.config: dict = (
-            {"domain": "GENERAL"} if domain == "일반" else {"domain": "CALL"}
-        )
+        self.config: dict = {"domain": "GENERAL"} if domain == "일반" else {"domain": "CALL"}
 
         if speaker_num != 0:
             self.config["use_diarization"] = True
@@ -90,10 +88,7 @@ class RtzrAPI:
             return " ".join([data["msg"] for data in raw_data["results"]["utterances"]])
         else:
             return "  \n".join(
-                [
-                    f"화자{text_data['spk']} ] {text_data['msg']}"
-                    for text_data in raw_data["results"]["utterances"]
-                ]
+                [f"화자{text_data['spk']} ] {text_data['msg']}" for text_data in raw_data["results"]["utterances"]]
             )
 
     def summary_inference(
@@ -130,9 +125,7 @@ class RtzrAPI:
         )
 
         # Decoding
-        self.summary_data = self.tokenizer.decode(
-            summary_text_ids[0], skip_special_tokens=True
-        )
+        self.summary_data = self.tokenizer.decode(summary_text_ids[0], skip_special_tokens=True)
 
     def get_raw_data(self) -> dict:
         """api를 통해 얻은 원시 데이터 반환"""
