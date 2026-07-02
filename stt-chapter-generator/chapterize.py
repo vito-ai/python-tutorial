@@ -8,10 +8,12 @@ from collections import Counter
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    import numpy as np
+import numpy as np
+from huggingface_hub.errors import GatedRepoError
+from kiwipiepy import Kiwi
+from sentence_transformers import SentenceTransformer
 
 
 EMBEDDING_MODEL = "google/embeddinggemma-300m"
@@ -92,29 +94,14 @@ def encode_segments(
     batch_size: int,
 ) -> np.ndarray:
     try:
-        import numpy as np
-        from sentence_transformers import SentenceTransformer
-    except ModuleNotFoundError as exc:
-        raise RuntimeError("Install dependencies first: uv sync") from exc
-
-    try:
         model = SentenceTransformer(model_name)
-    except Exception as exc:
-        message = str(exc)
-        if "awaiting a review" in message:
-            raise RuntimeError(
-                f"Cannot access embedding model '{model_name}' yet. "
-                "Your Hugging Face access request is still awaiting review "
-                "from the repository authors. Try again after access is approved."
-            ) from exc
-        if "GatedRepoError" in message or "gated repo" in message.lower() or "401" in message:
-            raise RuntimeError(
-                f"Cannot access embedding model '{model_name}'. "
-                "Open the model page on Hugging Face, accept the license terms, "
-                "then authenticate in this terminal with `hf auth login` "
-                "or set `HF_TOKEN`."
-            ) from exc
-        raise
+    except GatedRepoError as exc:
+        raise RuntimeError(
+            f"Cannot access embedding model '{model_name}'. "
+            "Open the model page on Hugging Face, accept the license terms, "
+            "then authenticate in this terminal with `hf auth login` "
+            "or set `HF_TOKEN`."
+        ) from exc
 
     embeddings = model.encode(
         [segment.text for segment in segments],
@@ -159,8 +146,6 @@ def calculate_c99_boundary_scores(
     rank_radius: int,
     boundary_window: int,
 ) -> dict[int, float]:
-    import numpy as np
-
     segment_count = len(embeddings)
     if segment_count < 2:
         return {}
@@ -184,8 +169,6 @@ def calculate_c99_boundary_scores(
 
 
 def local_rank_matrix(similarities: np.ndarray, radius: int) -> np.ndarray:
-    import numpy as np
-
     size = similarities.shape[0]
     ranks = np.empty_like(similarities, dtype=np.float32)
     for row in range(size):
@@ -200,8 +183,6 @@ def local_rank_matrix(similarities: np.ndarray, radius: int) -> np.ndarray:
 
 
 def padded_prefix_sum(matrix: np.ndarray) -> np.ndarray:
-    import numpy as np
-
     prefix = matrix.cumsum(axis=0).cumsum(axis=1)
     return np.pad(prefix, ((1, 0), (1, 0)), mode="constant")
 
@@ -465,11 +446,7 @@ def tokenize_keywords(text: str) -> list[str]:
 
 
 @lru_cache(maxsize=1)
-def get_kiwi() -> Any:
-    try:
-        from kiwipiepy import Kiwi
-    except ModuleNotFoundError as exc:
-        raise RuntimeError("Install dependencies first: uv sync") from exc
+def get_kiwi() -> Kiwi:
     return Kiwi()
 
 

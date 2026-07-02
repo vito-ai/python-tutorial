@@ -3,7 +3,7 @@ name = "stt-chapter-generator"
 version = "0.1.0"
 description = "Generate timestamped chapters from RTZR STT transcripts"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "kiwipiepy>=0.21.0",
     "numpy>=1.26.0",

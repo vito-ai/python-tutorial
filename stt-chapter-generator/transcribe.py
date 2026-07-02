@@ -1,31 +1,9 @@
 import argparse
 import json
-import os
-import time
 from pathlib import Path
 from typing import Any
 
-
-API_BASE_URL = "https://openapi.vito.ai/v1"
-
-
-def import_requests() -> Any:
-    try:
-        import requests
-    except ModuleNotFoundError as exc:
-        raise RuntimeError("Install dependencies first: uv sync") from exc
-    return requests
-
-
-def authenticate(client_id: str, client_secret: str) -> str:
-    requests = import_requests()
-    response = requests.post(
-        f"{API_BASE_URL}/authenticate",
-        data={"client_id": client_id, "client_secret": client_secret},
-        timeout=30,
-    )
-    response.raise_for_status()
-    return response.json()["access_token"]
+from rtzr_openapi_client import RTZROpenAPIClient
 
 
 def build_config(args: argparse.Namespace) -> dict[str, Any]:
@@ -40,50 +18,6 @@ def build_config(args: argparse.Namespace) -> dict[str, Any]:
         config["paragraph_splitter"] = {"max": args.paragraph_max}
 
     return config
-
-
-def submit_transcription(audio_path: Path, access_token: str, config: dict[str, Any]) -> str:
-    requests = import_requests()
-    with audio_path.open("rb") as audio_file:
-        response = requests.post(
-            f"{API_BASE_URL}/transcribe",
-            headers={"Authorization": f"Bearer {access_token}"},
-            files={"file": (audio_path.name, audio_file)},
-            data={"config": json.dumps(config, ensure_ascii=False)},
-            timeout=60,
-        )
-    response.raise_for_status()
-    return response.json()["id"]
-
-
-def poll_transcription(
-    transcribe_id: str,
-    access_token: str,
-    poll_interval: int,
-    timeout: int,
-) -> dict[str, Any]:
-    requests = import_requests()
-    started_at = time.monotonic()
-
-    while True:
-        response = requests.get(
-            f"{API_BASE_URL}/transcribe/{transcribe_id}",
-            headers={"Authorization": f"Bearer {access_token}"},
-            timeout=30,
-        )
-        response.raise_for_status()
-        payload = response.json()
-        status = payload.get("status")
-
-        if status == "completed":
-            return payload
-        if status == "failed":
-            raise RuntimeError(json.dumps(payload, ensure_ascii=False, indent=2))
-        if time.monotonic() - started_at > timeout:
-            raise TimeoutError(f"Timed out while waiting for transcription: {transcribe_id}")
-
-        print(f"status={status}; waiting {poll_interval}s...")
-        time.sleep(poll_interval)
 
 
 def default_output_path(audio_path: Path) -> Path:
@@ -134,25 +68,23 @@ def main() -> None:
     if not audio_path.exists():
         raise FileNotFoundError(audio_path)
 
-    client_id = os.getenv("RTZR_CLIENT_ID")
-    client_secret = os.getenv("RTZR_CLIENT_SECRET")
-    if not client_id or not client_secret:
-        raise RuntimeError("Set RTZR_CLIENT_ID and RTZR_CLIENT_SECRET before running.")
-
     output_path = args.output or default_output_path(audio_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    access_token = authenticate(client_id, client_secret)
+    client = RTZROpenAPIClient()
     config = build_config(args)
-    transcribe_id = submit_transcription(audio_path, access_token, config)
+    submit = client.transcribe_file(audio_path, config)
+    transcribe_id = submit["id"]
     print(f"transcribe_id={transcribe_id}")
 
-    transcript = poll_transcription(
+    transcript = client.wait_for_result(
         transcribe_id,
-        access_token,
-        args.poll_interval,
-        args.timeout,
+        poll_interval_sec=args.poll_interval,
+        timeout_sec=args.timeout,
     )
+    if transcript.get("status") == "failed":
+        raise RuntimeError(json.dumps(transcript, ensure_ascii=False, indent=2))
+
     output_path.write_text(
         json.dumps(transcript, ensure_ascii=False, indent=2),
         encoding="utf-8",
