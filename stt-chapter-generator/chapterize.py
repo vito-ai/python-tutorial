@@ -18,44 +18,19 @@ EMBEDDING_MODEL = "google/embeddinggemma-300m"
 EMBEDDING_BATCH_SIZE = 16
 RANK_RADIUS = 3
 WINDOW_SIZE = 5
+BOUNDARY_RANK_THRESHOLD = 0.385
+MAX_BOUNDARIES = 10
+BOUNDARY_TEXT_CHARS = 1000
 REPRESENTATIVE_KEYWORD_COUNT = 8
 KEYWORD_POS_TAGS = {"NNG", "NNP", "SL"}
 REPRESENTATIVE_MIN_CHARS = 35
 REPRESENTATIVE_TARGET_CHARS = 70
 REPRESENTATIVE_MAX_CHARS = 90
 
-STOPWORDS = {
-    "이것",
-    "저것",
-    "여기",
-    "저기",
-    "id",
-    "오늘",
-    "이번",
-    "영상",
-    "사람",
-    "정도",
-    "사실",
-    "이야기",
-    "경우",
-    "때문",
-    "하나",
-    "다시",
-    "이후",
-    "당시",
-    "결국",
-}
-
-
 @dataclass(frozen=True)
 class Segment:
     start_at: int
     text: str
-    duration: int = 0
-
-    @property
-    def end_at(self) -> int:
-        return self.start_at + max(self.duration, 0)
 
 
 @dataclass
@@ -91,7 +66,6 @@ def load_segments(transcript_path: Path) -> list[Segment]:
             Segment(
                 start_at=int(item.get("start_at", 0)),
                 text=text,
-                duration=int(item.get("duration", 0)),
             )
         )
 
@@ -164,38 +138,20 @@ def split_into_chapters_c99(
     if not boundary_scores:
         return [Chapter(start_at=segments[0].start_at, segments=segments)]
 
-    min_chapters, max_chapters = auto_chapter_count_bounds(segments)
-    boundaries = select_curve_elbow_boundaries(
+    max_boundaries = auto_max_boundaries(segments)
+    boundaries = select_ranked_boundaries(
         boundary_scores,
         segment_count=len(segments),
         min_segments=WINDOW_SIZE,
-        min_chapters=min_chapters,
-        max_chapters=max_chapters,
+        max_boundaries=max_boundaries,
+        rank_threshold=BOUNDARY_RANK_THRESHOLD,
     )
     return build_chapters_from_boundaries(segments, boundaries, boundary_scores)
 
 
-def auto_chapter_count_bounds(segments: list[Segment]) -> tuple[int, int]:
-    duration_ms = estimate_duration_ms(segments)
-    duration_minutes = max(duration_ms / 60_000, 1.0)
-    min_chapters = round(duration_minutes / 3.0)
-    max_chapters = round(duration_minutes / 1.5)
-
-    min_chapters = max(1, min_chapters, 3)
-    max_chapters = max(min_chapters, max_chapters, 6)
-    max_chapters = min(max_chapters, 10)
-    return min_chapters, max_chapters
-
-
-def estimate_duration_ms(segments: list[Segment]) -> int:
-    if not segments:
-        return 0
-
-    starts_at = segments[0].start_at
-    ends_at = max(segment.end_at for segment in segments)
-    if ends_at <= starts_at:
-        ends_at = segments[-1].start_at
-    return max(ends_at - starts_at, 0)
+def auto_max_boundaries(segments: list[Segment]) -> int:
+    total_chars = sum(len(segment.text) for segment in segments)
+    return min(MAX_BOUNDARIES, max(2, round(total_chars / BOUNDARY_TEXT_CHARS)))
 
 
 def calculate_c99_boundary_scores(
@@ -278,113 +234,36 @@ def block_mean(
     return block_sum(prefix, row_start, row_end, col_start, col_end) / area
 
 
-def select_curve_elbow_boundaries(
+def select_ranked_boundaries(
     boundary_scores: dict[int, float],
     segment_count: int,
     min_segments: int,
-    min_chapters: int,
-    max_chapters: int,
+    max_boundaries: int,
+    rank_threshold: float,
 ) -> list[int]:
-    possible_max = max(1, segment_count // min_segments)
-    min_chapters = min(max(min_chapters, 1), possible_max)
-    max_chapters = min(max(max_chapters, min_chapters), possible_max)
-    if max_chapters <= 1:
+    if max_boundaries < 1:
         return []
 
     ranked = sorted(boundary_scores.items(), key=lambda item: item[1], reverse=True)
-    min_boundaries = max(0, min_chapters - 1)
-    max_boundaries = max(0, max_chapters - 1)
-
-    best_curve: tuple[float, int] | None = None
-    upper = min(max_boundaries, len(ranked) - 1)
-    for boundary_count in range(max(1, min_boundaries), upper + 1):
-        cutoff_drop = ranked[boundary_count - 1][1] - ranked[boundary_count][1]
-        previous_drop = (
-            ranked[boundary_count - 2][1] - ranked[boundary_count - 1][1]
-            if boundary_count >= 2
-            else 0.0
-        )
-        next_drop = (
-            ranked[boundary_count][1] - ranked[boundary_count + 1][1]
-            if boundary_count + 1 < len(ranked)
-            else 0.0
-        )
-        curve_score = cutoff_drop - ((previous_drop + next_drop) / 2.0)
-        if best_curve is None or curve_score > best_curve[0]:
-            best_curve = (curve_score, boundary_count)
-
-    target_chapters = min_chapters if best_curve is None else best_curve[1] + 1
-    return select_target_boundaries(
-        boundary_scores,
-        segment_count=segment_count,
-        target_chapters=target_chapters,
-        min_segments=min_segments,
-    )
-
-
-def select_target_boundaries(
-    boundary_scores: dict[int, float],
-    segment_count: int,
-    target_chapters: int,
-    min_segments: int,
-) -> list[int]:
-    if target_chapters < 1:
-        raise ValueError("Target chapter count must be at least 1.")
-
-    max_chapters = max(1, segment_count // min_segments)
-    if target_chapters > max_chapters:
-        raise ValueError(
-            f"Target chapter count {target_chapters} is too high for "
-            f"{segment_count} segments with min_segments={min_segments}. "
-            f"Maximum is {max_chapters}."
-        )
-    if target_chapters == 1:
+    if not ranked:
         return []
 
-    boundaries = best_scoring_boundary_set(
-        boundary_scores,
-        segment_count=segment_count,
-        target_boundaries=target_chapters - 1,
-        min_segments=min_segments,
-    )
-    if len(boundaries) != target_chapters - 1:
-        raise ValueError(f"Could not create exactly {target_chapters} chapters.")
-    return boundaries
+    selected: list[int] = []
+    denominator = max(len(ranked) - 1, 1)
+    for rank, (gap, _) in enumerate(ranked):
+        rank_ratio = 1.0 - (rank / denominator)
+        if rank_ratio < rank_threshold:
+            continue
+        if gap < min_segments or segment_count - gap < min_segments:
+            continue
+        if any(abs(gap - selected_gap) < min_segments for selected_gap in selected):
+            continue
 
+        selected.append(gap)
+        if len(selected) >= max_boundaries:
+            break
 
-def best_scoring_boundary_set(
-    boundary_scores: dict[int, float],
-    segment_count: int,
-    target_boundaries: int,
-    min_segments: int,
-) -> list[int]:
-    @lru_cache(maxsize=None)
-    def search(start: int, remaining_boundaries: int) -> tuple[float, tuple[int, ...]] | None:
-        if remaining_boundaries == 0:
-            if segment_count - start >= min_segments:
-                return 0.0, ()
-            return None
-
-        best: tuple[float, tuple[int, ...]] | None = None
-        min_gap = start + min_segments
-        max_gap = segment_count - (remaining_boundaries * min_segments)
-
-        for gap in range(min_gap, max_gap + 1):
-            tail = search(gap, remaining_boundaries - 1)
-            if tail is None:
-                continue
-
-            total_score = boundary_scores.get(gap, 0.0) + tail[0]
-            candidate = (total_score, (gap, *tail[1]))
-            if best is None or candidate[0] > best[0]:
-                best = candidate
-
-        return best
-
-    result = search(0, target_boundaries)
-    if result is None:
-        return []
-    return list(result[1])
+    return sorted(selected)
 
 
 def build_chapters_from_boundaries(
@@ -600,11 +479,7 @@ def normalize_keyword(token: str) -> str:
 
 
 def is_keyword_candidate(token: str) -> bool:
-    if len(token) < 2:
-        return False
-    if token in STOPWORDS:
-        return False
-    return True
+    return len(token) >= 2
 
 
 def extract_keywords(
