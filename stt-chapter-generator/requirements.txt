@@ -1,0 +1,4 @@
+requests>=2.32.0
+numpy>=1.26.0
+sentence-transformers>=5.0.0
+kiwipiepy>=0.21.0
