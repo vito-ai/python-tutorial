@@ -13,7 +13,7 @@ def import_requests() -> Any:
     try:
         import requests
     except ModuleNotFoundError as exc:
-        raise RuntimeError("Install dependencies first: python3 -m pip install -r requirements.txt") from exc
+        raise RuntimeError("Install dependencies first: uv sync") from exc
     return requests
 
 

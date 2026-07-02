@@ -121,7 +121,7 @@ def encode_segments(
         import numpy as np
         from sentence_transformers import SentenceTransformer
     except ModuleNotFoundError as exc:
-        raise RuntimeError("Install dependencies first: python3 -m pip install -r requirements.txt") from exc
+        raise RuntimeError("Install dependencies first: uv sync") from exc
 
     try:
         model = SentenceTransformer(model_name)
@@ -590,7 +590,7 @@ def get_kiwi() -> Any:
     try:
         from kiwipiepy import Kiwi
     except ModuleNotFoundError as exc:
-        raise RuntimeError("Install dependencies first: python3 -m pip install -r requirements.txt") from exc
+        raise RuntimeError("Install dependencies first: uv sync") from exc
     return Kiwi()
 
 
