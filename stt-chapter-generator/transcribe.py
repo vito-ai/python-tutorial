@@ -30,7 +30,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("audio", type=Path, help="Path to an audio file.")
     parser.add_argument("-o", "--output", type=Path, help="Where to save transcript JSON.")
-    parser.add_argument("--model-name", default="whisper", help="RTZR model_name value.")
+    parser.add_argument("--model-name", default="sommers", help="RTZR model_name value.")
     parser.add_argument("--language", default="ko", help="Language code for the selected model.")
     parser.add_argument(
         "--use-paragraph-splitter",

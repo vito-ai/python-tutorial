@@ -43,7 +43,7 @@ uv run --env-file .env -- python transcribe.py --help
 
 ```bash
 uv run --env-file .env -- python transcribe.py path/to/audio.wav \
-  --model-name whisper \
+  --model-name sommers \
   --language ko \
   --use-paragraph-splitter \
   --paragraph-max 40 \
@@ -60,7 +60,7 @@ data/transcripts/audio.transcript.json
 
 ```bash
 uv run --env-file .env -- python transcribe.py path/to/audio.wav \
-  --model-name whisper \
+  --model-name sommers \
   --language ko \
   --use-paragraph-splitter \
   --paragraph-max 40 \
@@ -72,7 +72,7 @@ uv run --env-file .env -- python transcribe.py path/to/audio.wav \
 
 기본 실행은 문장 임베딩 모델과 C99-rank 경계 점수로 챕터 경계를 생성합니다. 이후 각 챕터 안에서 자주 등장하면서 전체 전사에서는 상대적으로 덜 흔한 명사 키워드를 내부적으로 고르고, 키워드와 가까운 실제 발화를 대표 발화로 표시합니다.
 
-챕터 수 상한은 전체 전사 글자 수를 기준으로 자동 계산됩니다. 기본값은 약 `1000`자마다 하나의 경계를 허용하되, 최소 `2`개에서 최대 `10`개의 경계까지만 선택합니다. 이후 경계 점수가 높은 지점을 우선적으로 고르고, 너무 가까운 위치가 반복해서 선택되지 않도록 최소 간격을 둡니다.
+챕터 수 상한은 전체 전사 글자 수를 기준으로 자동 계산됩니다. 기본값은 약 `750`자마다 하나의 경계를 허용하되, 최소 `2`개에서 최대 `10`개의 경계까지만 선택합니다. 이후 경계 점수가 높은 지점을 우선적으로 고르고, 너무 가까운 위치가 반복해서 선택되지 않도록 최소 간격을 둡니다.
 
 ```bash
 uv run python chapterize.py data/transcripts/audio.transcript.json
@@ -97,7 +97,7 @@ cat data/outputs/audio.chapters.md
 
 - 경계 간 최소 간격: `5`개 문단
 - 경계 계산 window: `5`
-- 최대 경계 수: 전체 전사 글자 수 기준, `min(10, max(2, round(total_chars / 1000)))`
+- 최대 경계 수: 전체 전사 글자 수 기준, `min(10, max(2, round(total_chars / 750)))`
 - 경계 선택 기준: 경계 점수의 상대 순위가 `0.385` 이상인 후보 우선 선택
 - C99-rank 반경: `3`
 - 챕터 표시 방식: 실제 전사문에서 고른 대표 발화
@@ -130,9 +130,11 @@ cat data/outputs/audio.chapters.md
 # Chapters: gilsang_winter_happiness
 
 - **00:00:12**
-  - 대표 발화: 전시회 구성은 1부에서 길상과 행복의 의미를 환기시킨 후에 2부와 3부에서 본격적으로 길상의 모습을 살펴볼 수 있도록 했습니다.
+  - 대표 발화: ...겨울을 맞이하여 길상 특별전, 그 겨울의 행복을 개최합니다.
+- **00:00:52**
+  - 대표 발화: ...행복한 순간을 담은 그림과 사진자료들을 영상으로 담아냈고, 복과 운을 바라는 여러 요소들을 전시하였습니다.
 - **00:02:39**
-  - 대표 발화: ...사는 열 가지인 십장생 또한 대표적인 장수의 상징입니다. 출세, 즉 과거에 합격하여 입신양명하고 부귀해지는 것 또한 옛 사람들이 꼽은 중요한 요소였습니다.
+  - 대표 발화: 또한 대표적인 장수의 상징입니다. 출세, 즉 과거에 합격하여 입신 양명하고 부귀해지는 것 또한 옛 사람들이 꼽은 중요한 요소였습니다.
 - **00:05:11**
   - 대표 발화: ...가치에 대한 측면이었지만, 행복에는 즐거움, 만족감 같은 정서적인 측면도 있습니다.
 - **00:06:01**
