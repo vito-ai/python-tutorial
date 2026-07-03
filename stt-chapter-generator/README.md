@@ -43,7 +43,7 @@ uv run --env-file .env -- python transcribe.py --help
 
 ```bash
 uv run --env-file .env -- python transcribe.py path/to/audio.wav \
-  --model-name whisper \
+  --model-name sommers \
   --language ko \
   --use-paragraph-splitter \
   --paragraph-max 40 \
@@ -60,7 +60,7 @@ data/transcripts/audio.transcript.json
 
 ```bash
 uv run --env-file .env -- python transcribe.py path/to/audio.wav \
-  --model-name whisper \
+  --model-name sommers \
   --language ko \
   --use-paragraph-splitter \
   --paragraph-max 40 \
@@ -130,11 +130,11 @@ cat data/outputs/audio.chapters.md
 # Chapters: gilsang_winter_happiness
 
 - **00:00:12**
-  - 대표 발화: 전시회 구성은 1부에서 길상과 행복의 의미를 환기시킨 후에 2부와 3부에서 본격적으로 길상의 모습을 살펴볼 수 있도록 했습니다.
+  - 대표 발화: ...겨울을 맞이하여 길상 특별전, 그 겨울의 행복을 개최합니다.
+- **00:00:52**
+  - 대표 발화: ...행복한 순간을 담은 그림과 사진자료들을 영상으로 담아냈고, 복과 운을 바라는 여러 요소들을 전시하였습니다.
 - **00:02:39**
-  - 대표 발화: 부귀를 상징하는 대표적인 것은 바로 모란입니다. 꽃 중에 왕이라 불리는 모란은 부귀영화를 상징하여 생활용품에 장식되었습니다.
-- **00:04:09**
-  - 대표 발화: ...입는 의례복 등에 표현되었습니다. 나전칠기와 도자 나무에도 역시 다양한 동식물과 문자, 무늬, 기하학적인 무늬 등 여러 가지의 좋은 뜻을 담아 장식하였습니다.
+  - 대표 발화: 또한 대표적인 장수의 상징입니다. 출세, 즉 과거에 합격하여 입신 양명하고 부귀해지는 것 또한 옛 사람들이 꼽은 중요한 요소였습니다.
 - **00:05:11**
   - 대표 발화: ...가치에 대한 측면이었지만, 행복에는 즐거움, 만족감 같은 정서적인 측면도 있습니다.
 - **00:06:01**
